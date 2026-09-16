@@ -14,10 +14,34 @@
 #include "utils/logger.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <string.h>
+#include <psp2/kernel/clib.h>
 #include <psp2/kernel/sysmem.h>
 #include <psp2/io/stat.h>
+
+// Puente para el LOG_ERRORS=1 de nuestra vitaGL vendorizada
+// (lib/vitagl/source/utils/debug_utils.h) -- vuelca los errores internos de
+// GXM que vitaGL detecta (normalmente solo van a sceClibPrintf, invisible sin
+// cable de debug) a nuestro logger de archivo. Dedupeamos mensajes
+// consecutivos identicos (p.ej. glShadeModel(GL_FLAT) se llama una vez por
+// frame) para no generar I/O de disco en cada frame.
+void vgl_log_bridge(const char *fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    sceClibVsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    static char last_buf[512] = "";
+    if (strcmp(buf, last_buf) == 0) {
+        return;
+    }
+    sceClibSnprintf(last_buf, sizeof(last_buf), "%s", buf);
+
+    l_error("[vgl] %s", buf);
+}
 
 // Helpers for our handling of shaders
 GLboolean skip_next_compile = GL_FALSE;
@@ -37,7 +61,21 @@ void gl_preload() {
 }
 
 void gl_init() {
-    vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+    SceKernelFreeMemorySizeInfo mem_info;
+    mem_info.size = sizeof(SceKernelFreeMemorySizeInfo);
+    sceKernelGetFreeMemorySize(&mem_info);
+    l_info("Pre-GL free user RAM: %u MB", (unsigned int)(mem_info.size_user / (1024 * 1024)));
+
+    vglUseTripleBuffering(GL_FALSE);
+    vglInitExtended(0, 960, 544, 8 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
+    vglWaitVblankStart(GL_TRUE);
+
+    l_info("Post-GL vitaGL RAM: free=%u MB, total=%u MB",
+           (unsigned int)(vglMemFree(VGL_MEM_RAM) / (1024 * 1024)),
+           (unsigned int)(vglMemTotal(VGL_MEM_RAM) / (1024 * 1024)));
+    l_info("Post-GL vitaGL VRAM: free=%u MB, total=%u MB",
+           (unsigned int)(vglMemFree(VGL_MEM_VRAM) / (1024 * 1024)),
+           (unsigned int)(vglMemTotal(VGL_MEM_VRAM) / (1024 * 1024)));
 }
 
 void gl_swap() {

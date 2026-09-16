@@ -53,7 +53,7 @@ Los símbolos JNI siguen la convención estándar `Java_*` (no requirió `Regist
 - [x] Input: Mapeo de botones físicos Vita (`Cruz`/`Arriba` = Salto, `Triángulo`/`R1` = Poner bandera, `Cuadrado`/`L1` = Quitar bandera, `Start`/`Círculo` = Pausa) + soporte táctil de pantalla (`sceTouch`).
 - [x] Audio: Sistema de audio multihilo con `SceAudioOut` y decodificador OGG `stb_vorbis` (música BGM en streaming, SFX precargados en memoria sin latencia).
 - [x] Assets & LiveArea: Assets extraídos en `ux0_data/theimpossiblegame/`, LiveArea PNGs indexados a 8-bit sin metadatos `._`, VPK generado (`theimpossiblegame.vpk`).
-- [ ] Pruebas en hardware real (instalación de `theimpossiblegame.vpk` y despliegue de datos a `ux0:data/theimpossiblegame/`).
+- [x] Pruebas en hardware real (instalación de `theimpossiblegame.vpk` y despliegue de datos a `ux0:data/theimpossiblegame/`) — menú y ambos niveles jugables a 60 FPS, con audio, input y guardado confirmados. Ver `port_progress.md` Fase 12 (vitaGL vendorizada como submodule, causa raíz del bug de pantalla negra).
 
 ## 5. Despliegue a Consola Real
 

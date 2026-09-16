@@ -15,7 +15,8 @@
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
 
-int _newlib_heap_size_user = 256 * 1024 * 1024;
+int _newlib_heap_size_user = 64 * 1024 * 1024;
+unsigned int sceUserMainThreadStackSize = 2 * 1024 * 1024;
 
 #ifdef USE_SCELIBC_IO
 int sceLibcHeapSize = 4 * 1024 * 1024;
@@ -47,7 +48,10 @@ static void (*ImpossibleGame_setNumbJumps)(void *env, void *obj, jint jumps) = N
 static void (*ImpossibleGame_setProgress)(void *env, void *obj, jint level, jboolean practice, jint progress) = NULL;
 
 int main() {
+    // Archivo de log .log incremental (001-999). Se crea antes del primer log.
+    logger_init();
     l_info("Starting The Impossible Game (PS Vita)...");
+    l_info("Log file: %s", logger_current_path());
 
     soloader_init_all();
 
@@ -78,17 +82,24 @@ int main() {
     l_success("JNI symbols resolved successfully.");
 
     gl_init();
+    l_success("GL initialized.");
 
     // Enable touch and controls
     sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
 
     // Audio & Save
-    audio_init();
+    if (audio_init() == 0) {
+        l_success("Audio initialized.");
+    } else {
+        l_warn("Audio failed to initialize, continuing without sound.");
+    }
     save_init();
+    l_success("Save initialized.");
 
     // Menu
     menu_init();
+    l_success("Menu initialized.");
 
     // Load game textures
     Texture tex_normal = texture_load(DATA_PATH "res/drawable/gametextures.png");
@@ -97,6 +108,9 @@ int main() {
 
     // Init native library with Vita native resolution 960x544
     ImpossibleGame_initLibrary(&jni, NULL, 960, 544);
+    l_success("Native initLibrary done.");
+    gl_swap();
+    l_success("First frame swapped, entering main loop.");
 
     // Sync saved data to native library
     ImpossibleGame_setNumbJumps(&jni, NULL, g_save_data.numbJumps);
@@ -123,6 +137,7 @@ int main() {
     int save_counter = 0;
 
     while (1) {
+        uint64_t frame_start = sceKernelGetProcessTimeWide();
         old_pad = pad;
         sceCtrlPeekBufferPositive(0, &pad, 1);
         sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);
@@ -184,11 +199,16 @@ int main() {
             glOrthof(0.0f, 960.0f, 0.0f, 544.0f, 0.0f, 1.0f);
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_CULL_FACE);
+            glDisable(GL_LIGHTING);
 
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, tex_normal.id);
+            glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
             glEnable(GL_BLEND);
             glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
             glClearColor(0.15f, 0.47f, 0.47f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
@@ -255,6 +275,12 @@ int main() {
         }
 
         gl_swap();
+
+        // Cap to 60 FPS (~16666 us)
+        uint64_t frame_elapsed = sceKernelGetProcessTimeWide() - frame_start;
+        if (frame_elapsed < 16666) {
+            sceKernelDelayThreadCB((SceUInt)(16666 - frame_elapsed));
+        }
     }
 
     save_write();
@@ -262,6 +288,7 @@ int main() {
     menu_shutdown();
     texture_free(&tex_normal);
     texture_free(&tex_4444);
+    logger_shutdown();
 
     sceKernelExitDeleteThread(0);
     return 0;

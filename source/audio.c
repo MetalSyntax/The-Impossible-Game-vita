@@ -136,7 +136,10 @@ static int audio_thread(SceSize args, void *argp) {
 int audio_init(void) {
     sceKernelCreateLwMutex(&g_audio_mutex, "audio_mutex", 0, 0, NULL);
 
-    g_audio_port = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_MAIN, AUDIO_SAMPLES, AUDIO_RATE, SCE_AUDIO_OUT_MODE_STEREO);
+    // SCE_AUDIO_OUT_PORT_TYPE_MAIN exige 48000Hz exactos; nuestros .ogg estan a
+    // 44100Hz. Usamos el puerto BGM, que si acepta 44100Hz, para no tener que
+    // resamplear en el hilo de mezcla.
+    g_audio_port = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, AUDIO_SAMPLES, AUDIO_RATE, SCE_AUDIO_OUT_MODE_STEREO);
     if (g_audio_port < 0) {
         l_error("Failed to open audio out port: 0x%x", g_audio_port);
         return -1;

@@ -65,6 +65,16 @@ add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -O3 -g -ffast-math -mfloat-abi=softfp -Wno-deprecated")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=gnu++20 -Wno-write-strings -Wno-psabi")
 
+# vitaGL vendorizada como submodule (lib/vitagl) compilada desde fuente en
+# vez de depender del libvitaGL.a global de ~/vitasdk (que resultó estar rota
+# para este port -- ver port_progress.md, causa raíz del fondo negro).
+# LOG_ERRORS=1 vuelca errores internos de GXM (via vgl_log_bridge en
+# source/utils/glutil.c, deduplicado) a nuestro logger de archivo -- útil
+# para futuro triage. SOFTFP_ABI=1 porque este proyecto ya compila con
+# -mfloat-abi=softfp arriba. NO_SPLASHSCREEN=1 quita el logo 3D de vitaGL al
+# arrancar.
+set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 LOG_ERRORS=1 NO_SPLASHSCREEN=1")
+
 add_executable(${CMAKE_PROJECT_NAME}
                source/main.c
                source/dynlib.c
@@ -98,6 +108,38 @@ add_executable(${CMAKE_PROJECT_NAME}
 
 add_subdirectory(lib/libc_bridge)
 add_dependencies(${CMAKE_PROJECT_NAME} SceLibcBridge)
+
+# vitaGL construida desde fuente (lib/vitagl, git submodule) en vez de la
+# libvitaGL.a/vitaGL.h globales de ~/vitasdk (ver comentario junto a
+# VITAGL_MAKE_FLAGS mas arriba).
+separate_arguments(VITAGL_MAKE_ARGS UNIX_COMMAND "${VITAGL_MAKE_FLAGS}")
+
+set(VITAGL_DIR ${CMAKE_SOURCE_DIR}/lib/vitagl)
+set(VITAGL_LIB ${VITAGL_DIR}/libvitaGL.a)
+
+# Fuerza una recompilacion completa de vitaGL si cambian los flags.
+set(VITAGL_FLAGS_STAMP ${CMAKE_BINARY_DIR}/vitagl_flags.stamp)
+set(vitagl_old_flags "")
+if (EXISTS ${VITAGL_FLAGS_STAMP})
+  file(READ ${VITAGL_FLAGS_STAMP} vitagl_old_flags)
+endif()
+if (NOT vitagl_old_flags STREQUAL VITAGL_MAKE_FLAGS)
+  file(GLOB_RECURSE vitagl_stale_objs ${VITAGL_DIR}/source/*.o)
+  file(REMOVE ${vitagl_stale_objs} ${VITAGL_LIB})
+  file(WRITE ${VITAGL_FLAGS_STAMP} "${VITAGL_MAKE_FLAGS}")
+endif()
+
+add_custom_target(vitaGL_build
+                  COMMAND make -C ${VITAGL_DIR} -j4 ${VITAGL_MAKE_ARGS}
+                  BYPRODUCTS ${VITAGL_LIB}
+                  COMMENT "Building vendored vitaGL"
+                  VERBATIM)
+
+add_library(vitaGL STATIC IMPORTED)
+set_target_properties(vitaGL PROPERTIES
+                      IMPORTED_LOCATION ${VITAGL_LIB}
+                      INTERFACE_INCLUDE_DIRECTORIES ${VITAGL_DIR}/source)
+add_dependencies(${CMAKE_PROJECT_NAME} vitaGL_build)
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib

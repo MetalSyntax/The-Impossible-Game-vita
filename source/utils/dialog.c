@@ -8,6 +8,7 @@
  */
 
 #include "utils/dialog.h"
+#include "utils/logger.h"
 
 #include <psp2/ctrl.h>
 #include <psp2/ime_dialog.h>
@@ -130,6 +131,9 @@ void fatal_error(const char *fmt, ...) {
     va_start(list, fmt);
     sceClibVsnprintf(string, sizeof(string), fmt, list);
     va_end(list);
+
+    // Dejar constancia en consola y en logs/log_XXX.log antes de salir.
+    l_fatal("%s", string);
 
     vglInit(0);
 

@@ -68,23 +68,23 @@ void texture_free(Texture *tex) {
     }
 }
 
-void draw_sprite_part(GLuint tex, float x, float y, float w, float h, float u0, float v0, float u1, float v1, float r, float g, float b, float a) {
-    float vertices[8] = {
-        x,     y,
-        x + w, y,
-        x,     y + h,
-        x + w, y + h
-    };
+static float s_sprite_vertices[8];
+static float s_sprite_texcoords[8];
 
-    float texcoords[8] = {
-        u0, v0,
-        u1, v0,
-        u0, v1,
-        u1, v1
-    };
+void draw_sprite_part(GLuint tex, float x, float y, float w, float h, float u0, float v0, float u1, float v1, float r, float g, float b, float a) {
+    s_sprite_vertices[0] = x;     s_sprite_vertices[1] = y;
+    s_sprite_vertices[2] = x + w; s_sprite_vertices[3] = y;
+    s_sprite_vertices[4] = x;     s_sprite_vertices[5] = y + h;
+    s_sprite_vertices[6] = x + w; s_sprite_vertices[7] = y + h;
+
+    s_sprite_texcoords[0] = u0; s_sprite_texcoords[1] = v0;
+    s_sprite_texcoords[2] = u1; s_sprite_texcoords[3] = v0;
+    s_sprite_texcoords[4] = u0; s_sprite_texcoords[5] = v1;
+    s_sprite_texcoords[6] = u1; s_sprite_texcoords[7] = v1;
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, tex);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(r, g, b, a);
@@ -92,8 +92,8 @@ void draw_sprite_part(GLuint tex, float x, float y, float w, float h, float u0, 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    glVertexPointer(2, GL_FLOAT, 0, vertices);
-    glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
+    glVertexPointer(2, GL_FLOAT, 0, s_sprite_vertices);
+    glTexCoordPointer(2, GL_FLOAT, 0, s_sprite_texcoords);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -109,13 +109,13 @@ void draw_sprite_centered(GLuint tex, float cx, float cy, float w, float h, floa
     draw_sprite(tex, cx - w * 0.5f, cy - h * 0.5f, w, h, r, g, b, a);
 }
 
+static float s_rect_vertices[8];
+
 void draw_rect(float x, float y, float w, float h, float r, float g, float b, float a) {
-    float vertices[8] = {
-        x,     y,
-        x + w, y,
-        x,     y + h,
-        x + w, y + h
-    };
+    s_rect_vertices[0] = x;     s_rect_vertices[1] = y;
+    s_rect_vertices[2] = x + w; s_rect_vertices[3] = y;
+    s_rect_vertices[4] = x;     s_rect_vertices[5] = y + h;
+    s_rect_vertices[6] = x + w; s_rect_vertices[7] = y + h;
 
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -123,7 +123,7 @@ void draw_rect(float x, float y, float w, float h, float r, float g, float b, fl
     glColor4f(r, g, b, a);
 
     glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, 0, vertices);
+    glVertexPointer(2, GL_FLOAT, 0, s_rect_vertices);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glDisableClientState(GL_VERTEX_ARRAY);
     glEnable(GL_TEXTURE_2D);

@@ -32,6 +32,8 @@
 extern so_module so_mod;
 
 void soloader_init_all() {
+    // Crear archivo de log incremental: logs/log_001.log ... log_999.log
+    logger_init();
 	// Launch `app0:configurator.bin` on `-config` init param
     sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
     SceAppUtilAppEventParam eventParam;
@@ -54,6 +56,8 @@ void soloader_init_all() {
     if (fios_init(DATA_PATH) == 0)
         l_success("FIOS initialized.");
 #endif
+    // Reintentar crear el .log si el primer intento (pre-FIOS) fallo.
+    logger_init();
 
     if (!module_loaded("kubridge")) {
         l_fatal("kubridge is not loaded.");

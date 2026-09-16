@@ -45,6 +45,20 @@ extern "C" {
 void _log_print(int t, const char* fmt, ...)
                 __attribute__ ((format (printf, 2, 3)));
 
+/**
+ * File logging: cada ejecucion crea un archivo nuevo en
+ *   DATA_PATH "logs/log_001.log" ... "logs/log_999.log"
+ * Formato .log, incremental de 001 hasta 999 (con wrap a 001 si estan todos
+ * ocupados). Debe llamarse una vez al arranque, antes del primer log.
+ */
+#define LOGGER_MAX_FILES 999
+
+void logger_init(void);
+void logger_shutdown(void);
+
+/* Ruta completa del archivo de log activo ("" si no hay ninguno). */
+const char *logger_current_path(void);
+
 #ifdef __cplusplus
 };
 #endif
