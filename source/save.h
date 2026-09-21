@@ -8,9 +8,9 @@ extern "C" {
 typedef struct {
     int numbJumps;
     int numbAttempts;
-    int medals[6];
-    int progress_practice[2];
-    int progress_noflag[2];
+    int medals[12];
+    int progress_practice[5];
+    int progress_noflag[5];
 } GameSaveData;
 
 extern GameSaveData g_save_data;

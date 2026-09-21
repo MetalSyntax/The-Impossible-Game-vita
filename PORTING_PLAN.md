@@ -64,3 +64,38 @@ Los símbolos JNI siguen la convención estándar `Java_*` (no requirió `Regist
    - `ux0:data/theimpossiblegame/assets/`
 3. Asegurar que `kubridge.skprx` y `libshacccg.suprx` estén instalados en la consola.
 4. Iniciar el juego desde el LiveArea.
+
+## 6. Level Pack (05133-Impossible-Level-Pack.apk) — integrado y confirmado en hardware real
+
+Fuente: `05133-Impossible-Level-Pack.apk` (`com.flukedude.impossiblegamelevelpack`), analizado y
+confirmado por comparación directa de ambos APKs (classes.dex, resources.arsc, `nm -D` del .so).
+
+- **`libimpossible.so` del pack** (armeabi-v7a, 59796 bytes) exporta las mismas 11 funciones JNI
+  que el base, con prefijo `Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_*` en vez de
+  `..._impossiblegame_...`. Trae inline los 5 niveles (índices 0-4): 0 Fire Aura, 1 Xbox (los 2 del
+  juego base), 2 Chaoz Fantasy, 3 Heaven, 4 Phazd (los 3 nuevos del pack). Confirmado swapeando el
+  `.so` en `ux0_data/theimpossiblegame/` (el original de 2 niveles queda respaldado como
+  `libimpossible.so.base-2level.bak`).
+- **Imports nuevos vs. el .so base:** `glClearColor`, `__cxa_finalize`, `raise` — los 3 ya estaban
+  resueltos en `dynlib.c` (se usan en otras partes del port), no requirió tocar el loader.
+- **Save data:** `GameSaveData` (`source/save.h`) pasó de `medals[6]`/`progress[2]` a
+  `medals[12]`/`progress[5]` (confirmado por las keys `medal1Unlocked..medal12Unlocked` y
+  `noFlagProgress..noFlagProgress5` del classes.dex del pack). `save.c` descarta el save viejo
+  solo por comparar `sizeof(GameSaveData)`, así que el progreso actual en consola se resetea al
+  actualizar — esperado, no es un bug.
+- **Audio:** el pack no reimplementa audio nativo (eso es cosa nuestra, `source/audio.c`); solo
+  trae `soundtrack2/3/4.ogg` para los niveles 2/3/4. Niveles 0/1 siguen usando `soundtrack.ogg`
+  del juego base. `BGM_SOUNDTRACK2/3/4` agregados a `audio.h`/`audio.c`.
+- **Menú (`source/menu.c`):** selección de nivel ampliada de 2 a 5 botones (grid 3+2 con botón
+  volver), stats de 3 a 6 subpáginas, medallas de 3 a 6 subpáginas. Assets nuevos copiados a
+  `ux0_data/theimpossiblegame/res/drawable/`: `menustartlevel2/3/4button(pressed).png`,
+  `statspage4/5/6.png`, `medalspage4/5/6(l).png`.
+  - **Ojo:** `statspage4/5/6.png` NO tienen variante landscape "l" en el pack (solo la resolución
+    mdpi original); se usan igual porque el renderer ya estira todo a una caja fija de 560×260 sin
+    respetar aspect ratio nativo, así que la pérdida de nitidez es menor y cosmética.
+- **Riesgo confirmado resuelto en hardware real:** el pack oficial (su propio menú Java) nunca
+  invoca `initGame(0)` ni `initGame(1)` directamente — solo juega 2/3/4 — pero llamar a esas
+  funciones desde nuestro loop en C (como ya hacíamos con el .so base) funciona igual: **los 5
+  niveles (Fire Aura, Xbox, Chaoz Fantasy, Heaven, Phazd) son jugables** con audio, input,
+  guardado y las 6 subpáginas de stats/medallas. Confirmado por el usuario en consola. El plan B
+  (cargar ambos `.so` con prefijos JNI distintos) no fue necesario.

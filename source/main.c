@@ -61,18 +61,19 @@ int main() {
         JNI_OnLoad(&jvm);
     }
 
-    // Resolve native functions
-    ImpossibleGame_drawFrame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_drawFrame");
-    ImpossibleGame_getMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_getMedalUnlocked");
-    ImpossibleGame_getNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_getNumbAttempts");
-    ImpossibleGame_getNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_getNumbJumps");
-    ImpossibleGame_getProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_getProgress");
-    ImpossibleGame_initGame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_initGame");
-    ImpossibleGame_initLibrary = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_initLibrary");
-    ImpossibleGame_setMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_setMedalUnlocked");
-    ImpossibleGame_setNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_setNumbAttempts");
-    ImpossibleGame_setNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_setNumbJumps");
-    ImpossibleGame_setProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegame_ImpossibleGame_setProgress");
+    // Resolve native functions (libimpossible.so del Level Pack: 5 niveles,
+    // prefijo JNI "impossiblegamelevelpack" en vez de "impossiblegame")
+    ImpossibleGame_drawFrame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_drawFrame");
+    ImpossibleGame_getMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getMedalUnlocked");
+    ImpossibleGame_getNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getNumbAttempts");
+    ImpossibleGame_getNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getNumbJumps");
+    ImpossibleGame_getProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getProgress");
+    ImpossibleGame_initGame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_initGame");
+    ImpossibleGame_initLibrary = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_initLibrary");
+    ImpossibleGame_setMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setMedalUnlocked");
+    ImpossibleGame_setNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setNumbAttempts");
+    ImpossibleGame_setNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setNumbJumps");
+    ImpossibleGame_setProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setProgress");
 
     if (!ImpossibleGame_drawFrame || !ImpossibleGame_initGame || !ImpossibleGame_initLibrary) {
         l_fatal("Failed to resolve essential JNI symbols!");
@@ -115,10 +116,10 @@ int main() {
     // Sync saved data to native library
     ImpossibleGame_setNumbJumps(&jni, NULL, g_save_data.numbJumps);
     ImpossibleGame_setNumbAttempts(&jni, NULL, g_save_data.numbAttempts);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 12; i++) {
         ImpossibleGame_setMedalUnlocked(&jni, NULL, i, g_save_data.medals[i]);
     }
-    for (int l = 0; l < 2; l++) {
+    for (int l = 0; l < 5; l++) {
         ImpossibleGame_setProgress(&jni, NULL, l, 1, g_save_data.progress_practice[l]);
         ImpossibleGame_setProgress(&jni, NULL, l, 0, g_save_data.progress_noflag[l]);
     }
@@ -163,7 +164,14 @@ int main() {
                     tex_4444.id
                 );
 
-                audio_play_music(BGM_SOUNDTRACK, 1);
+                // Niveles 0 (Fire Aura) y 1 (Xbox) usan el track base; el Level
+                // Pack trae soundtrack propio para 2 (Chaoz Fantasy), 3 (Heaven) y 4 (Phazd).
+                switch (current_level) {
+                    case 2:  audio_play_music(BGM_SOUNDTRACK2, 1); break;
+                    case 3:  audio_play_music(BGM_SOUNDTRACK3, 1); break;
+                    case 4:  audio_play_music(BGM_SOUNDTRACK4, 1); break;
+                    default: audio_play_music(BGM_SOUNDTRACK, 1);  break;
+                }
             }
             menu_render();
         } else {
@@ -259,10 +267,10 @@ int main() {
             // Sync stats
             g_save_data.numbJumps = ImpossibleGame_getNumbJumps(&jni, NULL);
             g_save_data.numbAttempts = ImpossibleGame_getNumbAttempts(&jni, NULL);
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 12; i++) {
                 g_save_data.medals[i] = ImpossibleGame_getMedalUnlocked(&jni, NULL, i);
             }
-            for (int l = 0; l < 2; l++) {
+            for (int l = 0; l < 5; l++) {
                 g_save_data.progress_practice[l] = ImpossibleGame_getProgress(&jni, NULL, l, 1);
                 g_save_data.progress_noflag[l] = ImpossibleGame_getProgress(&jni, NULL, l, 0);
             }

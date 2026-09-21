@@ -17,7 +17,11 @@ typedef enum {
     BGM_NONE = 0,
     BGM_MENU,
     BGM_SOUNDTRACK,
-    BGM_PRACTICE
+    BGM_PRACTICE,
+    BGM_SOUNDTRACK2, // Chaoz Fantasy (nivel 2, Level Pack)
+    BGM_SOUNDTRACK3, // Heaven (nivel 3, Level Pack)
+    BGM_SOUNDTRACK4, // Phazd (nivel 4, Level Pack)
+    BGM_COUNT
 } BgmTrack;
 
 int audio_init(void);

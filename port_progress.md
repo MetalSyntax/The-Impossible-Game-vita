@@ -228,6 +228,35 @@
   vez confirmada la causa real, dejando solo `vgl_log_bridge` (deduplicado) como capacidad de
   triage permanente.
 
-## Fase 13: Pendiente
-- El "world pack" de FlukeDude (contenido adicional de niveles) se distribuye en un APK
-  separado — no analizado todavía, queda como trabajo futuro.
+## Fase 13: Level Pack (05133-Impossible-Level-Pack.apk) integrado y confirmado en hardware real
+
+- **Análisis confirmado** comparando ambos APKs (classes.dex, resources.arsc, `nm -D` de ambos
+  `.so`): el Level Pack es otra app (`com.flukedude.impossiblegamelevelpack`) con 5 niveles —
+  0 Fire Aura, 1 Xbox (los mismos 2 del juego base), 2 Chaoz Fantasy, 3 Heaven, 4 Phazd (los 3
+  nuevos). Su `libimpossible.so` (armeabi-v7a, 59796 bytes) exporta las mismas 11 funciones JNI
+  que el base, con prefijo `Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_*`.
+- **Imports nuevos del .so del pack** vs. el base: `glClearColor`, `__cxa_finalize`, `raise` — los
+  3 ya estaban resueltos en `dynlib.c` de antes, no hizo falta tocar el loader.
+- **Cambios de código:**
+  - `source/main.c`: símbolos JNI resueltos con el prefijo `impossiblegamelevelpack`; loops de
+    sync de save ampliados de medallas 6→12 y progreso 2→5; selección de BGM por nivel
+    (0/1 → `soundtrack.ogg` base, 2/3/4 → `soundtrack2/3/4.ogg` del pack).
+  - `source/save.h`: `GameSaveData.medals[6]→[12]`, `progress_practice/noflag[2]→[5]` (confirmado
+    por las keys `medal1Unlocked..medal12Unlocked` y `noFlagProgress..noFlagProgress5` del
+    classes.dex del pack). El save viejo se descarta solo (mismatch de `sizeof`), progreso actual
+    en consola se pierde al actualizar — esperado.
+  - `source/audio.h` / `source/audio.c`: agregados `BGM_SOUNDTRACK2/3/4` + sus rutas.
+  - `source/menu.c`: selector de nivel de 2 a 5 botones (grid 3+2 con volver), stats de 3 a 6
+    subpáginas, medallas de 3 a 6 subpáginas. Nuevos assets copiados a
+    `ux0_data/theimpossiblegame/res/drawable/`: `menustartlevel2/3/4button(pressed).png`,
+    `statspage4/5/6.png` (sin variante landscape "l" en el pack — se usan igual porque el
+    renderer ya estira todo a una caja fija 560×260, pérdida de nitidez menor y cosmética),
+    `medalspage4/5/6(l).png`.
+- **`.so` swapeado en `ux0_data/theimpossiblegame/libimpossible.so`**; el original de 2 niveles
+  queda respaldado como `libimpossible.so.base-2level.bak` en la misma carpeta.
+- **Build local OK** (`psvita-toolkit build`), sin errores nuevos (solo warnings preexistentes de
+  `mktemp`/`FalsoJNI` no relacionados). VPK y `eboot.bin` regenerados en la raíz del repo.
+- **Confirmado en consola real por el usuario:** los 5 niveles (Fire Aura, Xbox, Chaoz Fantasy,
+  Heaven, Phazd) son jugables con el `.so` del Level Pack, pese a que el pack oficial (su propio
+  Java) nunca invoca `initGame(0)`/`initGame(1)` directamente — llamarlas desde nuestro loop en C
+  funciona igual. No hizo falta el plan B (cargar ambos `.so`).
