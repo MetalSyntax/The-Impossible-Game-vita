@@ -54,7 +54,10 @@ static const char *bgm_files[] = {
     "",
     DATA_PATH "res/raw/menutrack.ogg",
     DATA_PATH "res/raw/soundtrack.ogg",
-    DATA_PATH "res/raw/practicetrack.ogg"
+    DATA_PATH "res/raw/practicetrack.ogg",
+    DATA_PATH "res/raw/soundtrack2.ogg",
+    DATA_PATH "res/raw/soundtrack3.ogg",
+    DATA_PATH "res/raw/soundtrack4.ogg"
 };
 
 static int audio_thread(SceSize args, void *argp) {
@@ -207,7 +210,7 @@ void audio_shutdown(void) {
 }
 
 void audio_play_music(BgmTrack track, int loop) {
-    if (track <= BGM_NONE || track >= 4) {
+    if (track <= BGM_NONE || track >= BGM_COUNT) {
         audio_stop_music();
         return;
     }

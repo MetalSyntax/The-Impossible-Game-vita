@@ -18,8 +18,14 @@ static Texture t_btn_howtoplay, t_btn_howtoplay_p;
 static Texture t_btn_medals, t_btn_medals_p;
 static Texture t_btn_stats, t_btn_stats_p;
 
-static Texture t_btn_lvl1, t_btn_lvl1_p;
-static Texture t_btn_lvl2, t_btn_lvl2_p, t_btn_lvl2_lock;
+// Botones de selección de nivel. Nombres heredados de los assets originales
+// (menustartlevel1button.png = nivel 0 "Fire Aura", menustartxboxbutton.png =
+// nivel 1 "Xbox"); lvl3/4/5 son los 3 niveles nuevos del Level Pack.
+static Texture t_btn_lvl1, t_btn_lvl1_p;               // nivel 0: Fire Aura
+static Texture t_btn_lvl2, t_btn_lvl2_p, t_btn_lvl2_lock; // nivel 1: Xbox
+static Texture t_btn_lvl3, t_btn_lvl3_p;               // nivel 2: Chaoz Fantasy
+static Texture t_btn_lvl4, t_btn_lvl4_p;               // nivel 3: Heaven
+static Texture t_btn_lvl5, t_btn_lvl5_p;               // nivel 4: Phazd
 
 static Texture t_pause_hdr;
 static Texture t_pause_resume, t_pause_resume_p;
@@ -32,12 +38,12 @@ static Texture t_btn_next, t_btn_next_p;
 static Texture t_btn_back, t_btn_back_p;
 static Texture t_btn_menu, t_btn_menu_p;
 
-static Texture t_stats_pages[3];
+static Texture t_stats_pages[6];
 static Texture t_progress_bar;
 static Texture t_progress_frame;
 
 static Texture t_medals_hdr;
-static Texture t_medals_pages[3];
+static Texture t_medals_pages[6];
 static Texture t_medals_lock;
 
 static Texture t_end_noflags;
@@ -66,6 +72,12 @@ int menu_init(void) {
     t_btn_lvl2 = texture_load(DRAWABLE "menustartxboxbutton.png");
     t_btn_lvl2_p = texture_load(DRAWABLE "menustartxboxbuttonpressed.png");
     t_btn_lvl2_lock = texture_load(DRAWABLE "menustartxboxlocked.png");
+    t_btn_lvl3 = texture_load(DRAWABLE "menustartlevel2button.png");
+    t_btn_lvl3_p = texture_load(DRAWABLE "menustartlevel2buttonpressed.png");
+    t_btn_lvl4 = texture_load(DRAWABLE "menustartlevel3button.png");
+    t_btn_lvl4_p = texture_load(DRAWABLE "menustartlevel3buttonpressed.png");
+    t_btn_lvl5 = texture_load(DRAWABLE "menustartlevel4button.png");
+    t_btn_lvl5_p = texture_load(DRAWABLE "menustartlevel4buttonpressed.png");
 
     t_pause_hdr = texture_load(DRAWABLE "pausedheaderl.png");
     t_pause_resume = texture_load(DRAWABLE "pausedresumebuttonl.png");
@@ -88,16 +100,23 @@ int menu_init(void) {
     t_btn_menu = texture_load(DRAWABLE "menumenubuttonl.png");
     t_btn_menu_p = texture_load(DRAWABLE "menumenubuttonpressedl.png");
 
-    t_stats_pages[0] = texture_load(DRAWABLE "statspage1l.png");
-    t_stats_pages[1] = texture_load(DRAWABLE "statspage2l.png");
-    t_stats_pages[2] = texture_load(DRAWABLE "statspage3l.png");
+    // statspage1-3 (base) tienen variante landscape "l"; statspage4-6 (Level
+    // Pack, niveles 2-4) solo vienen en la resolución mdpi del pack original.
+    for (int i = 0; i < 6; i++) {
+        char path[256];
+        if (i < 3) snprintf(path, sizeof(path), DRAWABLE "statspage%dl.png", i + 1);
+        else snprintf(path, sizeof(path), DRAWABLE "statspage%d.png", i + 1);
+        t_stats_pages[i] = texture_load(path);
+    }
     t_progress_bar = texture_load(DRAWABLE "progressbar.png");
     t_progress_frame = texture_load(DRAWABLE "statsprogressframe.png");
 
     t_medals_hdr = texture_load(DRAWABLE "medalsl.png");
-    t_medals_pages[0] = texture_load(DRAWABLE "medalspage1l.png");
-    t_medals_pages[1] = texture_load(DRAWABLE "medalspage2l.png");
-    t_medals_pages[2] = texture_load(DRAWABLE "medalspage3l.png");
+    for (int i = 0; i < 6; i++) {
+        char path[256];
+        snprintf(path, sizeof(path), DRAWABLE "medalspage%dl.png", i + 1);
+        t_medals_pages[i] = texture_load(path);
+    }
     t_medals_lock = texture_load(DRAWABLE "medallockl.png");
 
     t_end_noflags = texture_load(DRAWABLE "endnoflags.png");
@@ -116,6 +135,9 @@ void menu_shutdown(void) {
 
     texture_free(&t_btn_lvl1); texture_free(&t_btn_lvl1_p);
     texture_free(&t_btn_lvl2); texture_free(&t_btn_lvl2_p); texture_free(&t_btn_lvl2_lock);
+    texture_free(&t_btn_lvl3); texture_free(&t_btn_lvl3_p);
+    texture_free(&t_btn_lvl4); texture_free(&t_btn_lvl4_p);
+    texture_free(&t_btn_lvl5); texture_free(&t_btn_lvl5_p);
 
     texture_free(&t_pause_hdr);
     texture_free(&t_pause_resume); texture_free(&t_pause_resume_p);
@@ -128,12 +150,12 @@ void menu_shutdown(void) {
     texture_free(&t_btn_back); texture_free(&t_btn_back_p);
     texture_free(&t_btn_menu); texture_free(&t_btn_menu_p);
 
-    for (int i = 0; i < 3; i++) texture_free(&t_stats_pages[i]);
+    for (int i = 0; i < 6; i++) texture_free(&t_stats_pages[i]);
     texture_free(&t_progress_bar);
     texture_free(&t_progress_frame);
 
     texture_free(&t_medals_hdr);
-    for (int i = 0; i < 3; i++) texture_free(&t_medals_pages[i]);
+    for (int i = 0; i < 6; i++) texture_free(&t_medals_pages[i]);
     texture_free(&t_medals_lock);
 
     texture_free(&t_end_noflags);
@@ -211,50 +233,67 @@ int menu_update(SceCtrlData *pad, SceCtrlData *old_pad, SceTouchData *touch, int
         }
 
         case STATE_LEVEL_SELECT: {
-            float b0_x = 160, b0_y = 220, b0_w = 300, b0_h = 100;
-            float b1_x = 500, b1_y = 220, b1_w = 300, b1_h = 100;
-            float b_back_x = 380, b_back_y = 400, b_back_w = 200, b_back_h = 70;
+            // 5 niveles: fila 1 = Fire Aura/Xbox/Chaoz Fantasy, fila 2 = Heaven/Phazd.
+            // g_pressed_btn / g_selected_btn: 0-4 = nivel, 5 = volver al menú.
+            float lvl_x[5] = { 40, 340, 640, 190, 490 };
+            float lvl_y[5] = { 120, 120, 120, 230, 230 };
+            float lvl_w = 280, lvl_h = 90;
+            float b_back_x = 380, b_back_y = 350, b_back_w = 200, b_back_h = 70;
 
             if (touching) {
-                if (hit_test(tx, ty, b0_x, b0_y, b0_w, b0_h)) g_pressed_btn = 0;
-                else if (hit_test(tx, ty, b1_x, b1_y, b1_w, b1_h)) g_pressed_btn = 1;
-                else if (hit_test(tx, ty, b_back_x, b_back_y, b_back_w, b_back_h)) g_pressed_btn = 2;
-                else g_pressed_btn = -1;
+                g_pressed_btn = -1;
+                for (int i = 0; i < 5; i++) {
+                    if (hit_test(tx, ty, lvl_x[i], lvl_y[i], lvl_w, lvl_h)) { g_pressed_btn = i; break; }
+                }
+                if (g_pressed_btn == -1 && hit_test(tx, ty, b_back_x, b_back_y, b_back_w, b_back_h)) {
+                    g_pressed_btn = 5;
+                }
             } else if (g_pressed_btn != -1) {
                 audio_play_sfx(SFX_BOOP);
-                if (g_pressed_btn == 0) {
-                    *out_level = 0;
+                if (g_pressed_btn >= 0 && g_pressed_btn <= 4) {
+                    *out_level = g_pressed_btn;
                     g_state = STATE_GAMEPLAY;
                     return 1;
-                } else if (g_pressed_btn == 1) {
-                    *out_level = 1;
-                    g_state = STATE_GAMEPLAY;
-                    return 1;
-                } else if (g_pressed_btn == 2) {
+                } else if (g_pressed_btn == 5) {
                     menu_set_state(STATE_MAIN_MENU);
                 }
                 g_pressed_btn = -1;
             }
 
-            if (pressed & SCE_CTRL_LEFT)  g_selected_btn = 0;
-            if (pressed & SCE_CTRL_RIGHT) g_selected_btn = 1;
-            if (pressed & SCE_CTRL_DOWN)  g_selected_btn = 2;
-            if (pressed & SCE_CTRL_UP && g_selected_btn == 2) g_selected_btn = 0;
+            if (pressed & SCE_CTRL_RIGHT) {
+                if (g_selected_btn == 0) g_selected_btn = 1;
+                else if (g_selected_btn == 1) g_selected_btn = 2;
+                else if (g_selected_btn == 2) g_selected_btn = 0;
+                else if (g_selected_btn == 3) g_selected_btn = 4;
+                else if (g_selected_btn == 4) g_selected_btn = 3;
+            }
+            if (pressed & SCE_CTRL_LEFT) {
+                if (g_selected_btn == 0) g_selected_btn = 2;
+                else if (g_selected_btn == 1) g_selected_btn = 0;
+                else if (g_selected_btn == 2) g_selected_btn = 1;
+                else if (g_selected_btn == 3) g_selected_btn = 4;
+                else if (g_selected_btn == 4) g_selected_btn = 3;
+            }
+            if (pressed & SCE_CTRL_DOWN) {
+                if (g_selected_btn <= 2) g_selected_btn = (g_selected_btn == 2) ? 4 : 3;
+                else if (g_selected_btn == 3 || g_selected_btn == 4) g_selected_btn = 5;
+            }
+            if (pressed & SCE_CTRL_UP) {
+                if (g_selected_btn == 5) g_selected_btn = 3;
+                else if (g_selected_btn == 3) g_selected_btn = 0;
+                else if (g_selected_btn == 4) g_selected_btn = 2;
+            }
 
             if (pressed & SCE_CTRL_CIRCLE) {
                 audio_play_sfx(SFX_BOOP);
                 menu_set_state(STATE_MAIN_MENU);
             } else if (pressed & SCE_CTRL_CROSS) {
                 audio_play_sfx(SFX_BOOP);
-                if (g_selected_btn == 0) {
-                    *out_level = 0;
+                if (g_selected_btn >= 0 && g_selected_btn <= 4) {
+                    *out_level = g_selected_btn;
                     g_state = STATE_GAMEPLAY;
                     return 1;
-                } else if (g_selected_btn == 1) {
-                    *out_level = 1;
-                    g_state = STATE_GAMEPLAY;
-                    return 1;
-                } else if (g_selected_btn == 2) {
+                } else if (g_selected_btn == 5) {
                     menu_set_state(STATE_MAIN_MENU);
                 }
             }
@@ -350,12 +389,12 @@ int menu_update(SceCtrlData *pad, SceCtrlData *old_pad, SceTouchData *touch, int
                 audio_play_sfx(SFX_BOOP);
                 if (g_pressed_btn == 0 && g_subpage > 0) g_subpage--;
                 else if (g_pressed_btn == 1) menu_set_state(STATE_MAIN_MENU);
-                else if (g_pressed_btn == 2 && g_subpage < 2) g_subpage++;
+                else if (g_pressed_btn == 2 && g_subpage < 5) g_subpage++;
                 g_pressed_btn = -1;
             }
 
             if (pressed & SCE_CTRL_LEFT && g_subpage > 0) g_subpage--;
-            if (pressed & SCE_CTRL_RIGHT && g_subpage < 2) g_subpage++;
+            if (pressed & SCE_CTRL_RIGHT && g_subpage < 5) g_subpage++;
             if (pressed & SCE_CTRL_CIRCLE) menu_set_state(STATE_MAIN_MENU);
             break;
         }
@@ -418,14 +457,27 @@ void menu_render(void) {
         }
 
         case STATE_LEVEL_SELECT: {
+            float lvl_x[5] = { 40, 340, 640, 190, 490 };
+            float lvl_y[5] = { 120, 120, 120, 230, 230 };
+            float lvl_w = 280, lvl_h = 90;
+
             GLuint b0 = (g_pressed_btn == 0 || g_selected_btn == 0) ? t_btn_lvl1_p.id : t_btn_lvl1.id;
-            draw_sprite(b0, 160, 220, 300, 100, 1, 1, 1, 1);
+            draw_sprite(b0, lvl_x[0], lvl_y[0], lvl_w, lvl_h, 1, 1, 1, 1);
 
             GLuint b1 = (g_pressed_btn == 1 || g_selected_btn == 1) ? t_btn_lvl2_p.id : t_btn_lvl2.id;
-            draw_sprite(b1, 500, 220, 300, 100, 1, 1, 1, 1);
+            draw_sprite(b1, lvl_x[1], lvl_y[1], lvl_w, lvl_h, 1, 1, 1, 1);
 
-            GLuint bb = (g_pressed_btn == 2 || g_selected_btn == 2) ? t_btn_menu_p.id : t_btn_menu.id;
-            draw_sprite(bb, 380, 400, 200, 70, 1, 1, 1, 1);
+            GLuint b2 = (g_pressed_btn == 2 || g_selected_btn == 2) ? t_btn_lvl3_p.id : t_btn_lvl3.id;
+            draw_sprite(b2, lvl_x[2], lvl_y[2], lvl_w, lvl_h, 1, 1, 1, 1);
+
+            GLuint b3 = (g_pressed_btn == 3 || g_selected_btn == 3) ? t_btn_lvl4_p.id : t_btn_lvl4.id;
+            draw_sprite(b3, lvl_x[3], lvl_y[3], lvl_w, lvl_h, 1, 1, 1, 1);
+
+            GLuint b4 = (g_pressed_btn == 4 || g_selected_btn == 4) ? t_btn_lvl5_p.id : t_btn_lvl5.id;
+            draw_sprite(b4, lvl_x[4], lvl_y[4], lvl_w, lvl_h, 1, 1, 1, 1);
+
+            GLuint bb = (g_pressed_btn == 5 || g_selected_btn == 5) ? t_btn_menu_p.id : t_btn_menu.id;
+            draw_sprite(bb, 380, 350, 200, 70, 1, 1, 1, 1);
             break;
         }
 
@@ -465,12 +517,12 @@ void menu_render(void) {
         }
 
         case STATE_STATS: {
-            if (g_subpage >= 0 && g_subpage < 3 && t_stats_pages[g_subpage].id) {
+            if (g_subpage >= 0 && g_subpage < 6 && t_stats_pages[g_subpage].id) {
                 draw_sprite_centered(t_stats_pages[g_subpage].id, 480, 200, 560, 260, 1, 1, 1, 1);
             }
 
-            // Progress bar for Level 1 or 2
-            if (g_subpage == 1 || g_subpage == 2) {
+            // Progress bar for levels 0-4 (subpage 1..5)
+            if (g_subpage >= 1 && g_subpage <= 5) {
                 int lvl = g_subpage - 1;
                 float practice_pct = (float)g_save_data.progress_practice[lvl] / 100.0f;
                 float normal_pct = (float)g_save_data.progress_noflag[lvl] / 100.0f;
@@ -496,7 +548,7 @@ void menu_render(void) {
             GLuint b1 = (g_pressed_btn == 1) ? t_btn_menu_p.id : t_btn_menu.id;
             draw_sprite(b1, 380, 440, 200, 70, 1, 1, 1, 1);
 
-            if (g_subpage < 2) {
+            if (g_subpage < 5) {
                 GLuint b2 = (g_pressed_btn == 2) ? t_btn_next_p.id : t_btn_next.id;
                 draw_sprite(b2, 660, 440, 200, 70, 1, 1, 1, 1);
             }
@@ -506,7 +558,7 @@ void menu_render(void) {
         case STATE_MEDALS: {
             draw_sprite_centered(t_medals_hdr.id, 480, 60, 350, 70, 1, 1, 1, 1);
 
-            if (g_subpage >= 0 && g_subpage < 3 && t_medals_pages[g_subpage].id) {
+            if (g_subpage >= 0 && g_subpage < 6 && t_medals_pages[g_subpage].id) {
                 draw_sprite_centered(t_medals_pages[g_subpage].id, 480, 230, 560, 240, 1, 1, 1, 1);
 
                 // Lock icons for locked medals
@@ -528,7 +580,7 @@ void menu_render(void) {
             GLuint b1 = (g_pressed_btn == 1) ? t_btn_menu_p.id : t_btn_menu.id;
             draw_sprite(b1, 380, 440, 200, 70, 1, 1, 1, 1);
 
-            if (g_subpage < 2) {
+            if (g_subpage < 5) {
                 GLuint b2 = (g_pressed_btn == 2) ? t_btn_next_p.id : t_btn_next.id;
                 draw_sprite(b2, 660, 440, 200, 70, 1, 1, 1, 1);
             }

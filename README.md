@@ -38,9 +38,10 @@ the full engine-detection write-up and the confirmed native lifecycle
 
 ### 🎮 Current Status: Playable
 
-The game **boots to the main menu and both bundled levels (Fire Aura, Original Xbox Level) are
-fully playable** — graphics, audio, touch and physical-button input, and save data (medals,
-attempts, jumps, per-level progress) all confirmed working on real hardware. See
+The game **boots to the main menu and all 5 levels are fully playable**: the 2 base levels (Fire
+Aura, Original Xbox Level) plus the 3 levels from the official **Level Pack add-on** (Chaoz
+Fantasy, Heaven, Phazd) — graphics, audio, touch and physical-button input, and save data
+(12 medals, per-level progress across all 5 levels) all confirmed working on real hardware. See
 [`port_progress.md`](port_progress.md) for the full bug-by-bug diagnosis log (every fix is
 backed by a real console log — no guessing).
 
@@ -59,17 +60,23 @@ backed by a real console log — no guessing).
 - **Complete Input Mapping**: Cross/D-Pad-Up to jump, Triangle/R1 to place a practice flag,
   Square/L1 to remove it, Start/Circle to pause — plus full front-touch-panel support, mapped
   1:1 to both menu navigation and in-game touch-to-jump.
-- **Persistent Save Data**: jumps, attempts, unlocked medals, and per-level/per-mode progress
-  saved to `ux0:data/theimpossiblegame/save.dat`, synced bidirectionally with the native
-  library's own getters/setters.
+- **Persistent Save Data**: jumps, attempts, 12 unlocked medals, and per-level/per-mode progress
+  across all 5 levels saved to `ux0:data/theimpossiblegame/save.dat`, synced bidirectionally with
+  the native library's own getters/setters.
 - **Incremental File Logging**: every run writes a fresh `logs/log_NNN.log`, used throughout
   triage on real hardware (see `source/utils/logger.c`).
+- **Level Pack support (5 levels total)**: the official add-on APK
+  (`05133-Impossible-Level-Pack.apk`, package `com.flukedude.impossiblegamelevelpack`) is
+  supported by swapping in its `libimpossible.so` (same 11 JNI exports, different symbol
+  prefix) and merging its extra assets — see
+  [Level Pack Installation](#-level-pack-installation-5-levels-optional) below. Level select,
+  stats, and medals menus scale from 2 to 5 levels / 3 to 6 subpages automatically.
 
 ### ⚠️ Known Issues / Pending Work
 
-- **World/level packs not yet ported**: the base game (this APK) only ships two levels (Fire
-  Aura and the Original Xbox Level). FlukeDude's additional "world pack" content is distributed
-  as a **separate APK** and hasn't been analyzed or integrated yet — planned as future work.
+- None currently open. If FlukeDude ever ships further add-on content beyond the Level Pack, it
+  would need the same kind of analysis (see [`PORTING_PLAN.md`](PORTING_PLAN.md) §6) before it
+  could be integrated.
 
 ---
 
@@ -85,6 +92,9 @@ To run this port on your PS Vita or PS TV, you will need:
    installed in `ur0:data/` (required by vitaGL's fixed-function shader compiler).
 4. A legally obtained copy of **The Impossible Game** for Android
    (`05133-the-impossible-1.5.2.apk`, package `com.flukedude.impossiblegame`).
+5. *(Optional, for 3 extra levels)* A legally obtained copy of the **Level Pack** add-on for
+   Android (`05133-Impossible-Level-Pack.apk`, package
+   `com.flukedude.impossiblegamelevelpack`).
 
 ---
 
@@ -109,6 +119,45 @@ ux0:data/theimpossiblegame/
 ├── logs/              <- Incremental debug logs (log_NNN.log)
 └── save.dat           <- Created at runtime (jumps, attempts, medals, progress)
 ```
+
+---
+
+## 🎁 Level Pack Installation (5 levels, optional)
+
+This VPK (v1.1.0+) has the code needed to play all 5 levels, but — same as the base game — it
+does **not** bundle FlukeDude's proprietary Level Pack assets. If you own
+`05133-Impossible-Level-Pack.apk`, add its content on top of the base install above:
+
+1. Unzip `05133-Impossible-Level-Pack.apk` (it's a standard zip archive) on your PC.
+2. Back up the base `.so` first (optional but recommended, to be able to revert to 2 levels):
+   ```
+   ux0:data/theimpossiblegame/libimpossible.so → libimpossible.so.base-2level.bak
+   ```
+3. Copy the following files from the unzipped Level Pack into
+   `ux0:data/theimpossiblegame/` on your console, **overwriting/merging** with the existing
+   folder:
+
+   | From the Level Pack APK | To `ux0:data/theimpossiblegame/` |
+   |---|---|
+   | `lib/armeabi-v7a/libimpossible.so` | `libimpossible.so` (overwrite) |
+   | `res/raw/soundtrack2.ogg`, `soundtrack3.ogg`, `soundtrack4.ogg` | `res/raw/` |
+   | `res/drawable/menustartlevel2button.png` (+`pressed`), `menustartlevel3button.png` (+`pressed`), `menustartlevel4button.png` (+`pressed`) | `res/drawable/` |
+   | `res/drawable/statspage4.png`, `statspage5.png`, `statspage6.png` | `res/drawable/` |
+   | `res/drawable/medalspage4.png`, `medalspage4l.png`, `medalspage5.png`, `medalspage5l.png`, `medalspage6.png`, `medalspage6l.png` | `res/drawable/` |
+
+4. Relaunch the game. Level select now shows all 5 levels; Stats and Medals scale to 6 subpages.
+
+**Notes:**
+- The Level Pack's `.so` exports the same 11 JNI functions as the base game under a different
+  symbol prefix (`impossiblegamelevelpack` instead of `impossiblegame`) — this port already
+  resolves the right one, no code changes needed on your end.
+- `statspage4/5/6.png` only ship at the pack's original mdpi resolution (no landscape crop) —
+  this port already accounts for that, it's a minor, cosmetic sharpness difference only.
+- Your existing `save.dat` will be reset the first time you launch with the new `.so` (the save
+  layout grows from 6 to 12 medals and from 2 to 5 levels of progress) — this is expected, not a
+  bug.
+- See [`PORTING_PLAN.md`](PORTING_PLAN.md) §6 for the full technical write-up (symbol
+  verification, asset diffing, risk analysis).
 
 ---
 
