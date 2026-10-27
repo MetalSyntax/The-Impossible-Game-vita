@@ -406,7 +406,7 @@ jsize jda_sizeof(JavaDynArray * jda) {
         if (jda == &javaDynArrays[i]) {
             if (javaDynArrays[i].array == NULL) {
                 jda_unlock();
-                return NULL;
+                return 0;
             }
             jsize ret = javaDynArrays[i].len;
             jda_unlock();
@@ -465,7 +465,7 @@ JavaDynArray * jda_find(void * arr) {
         if (arr == &javaDynArrays[i]) {
             if (javaDynArrays[i].array == NULL) {
                 jda_unlock();
-                return NULL;
+                return 0;
             }
             JavaDynArray * ret = &javaDynArrays[i];
             jda_unlock();

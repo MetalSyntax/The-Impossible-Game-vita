@@ -124,9 +124,9 @@ ux0:data/theimpossiblegame/
 
 ## 🎁 Level Pack Installation (5 levels, optional)
 
-This VPK (v1.1.0+) has the code needed to play all 5 levels, but — same as the base game — it
-does **not** bundle FlukeDude's proprietary Level Pack assets. If you own
-`05133-Impossible-Level-Pack.apk`, add its content on top of the base install above:
+This VPK (v1.2.0+) supports **both** the base game (2 levels) and the Level Pack (5 levels) dynamically.
+If you only have `05133-the-impossible-1.5.2.apk`, simply extract it and copy its files; the game will boot in 2-level mode.
+If you own `05133-Impossible-Level-Pack.apk`, you can add its content on top of the base install to unlock all 5 levels:
 
 1. Unzip `05133-Impossible-Level-Pack.apk` (it's a standard zip archive) on your PC.
 2. Back up the base `.so` first (optional but recommended, to be able to revert to 2 levels):
@@ -145,12 +145,13 @@ does **not** bundle FlukeDude's proprietary Level Pack assets. If you own
    | `res/drawable/statspage4.png`, `statspage5.png`, `statspage6.png` | `res/drawable/` |
    | `res/drawable/medalspage4.png`, `medalspage4l.png`, `medalspage5.png`, `medalspage5l.png`, `medalspage6.png`, `medalspage6l.png` | `res/drawable/` |
 
-4. Relaunch the game. Level select now shows all 5 levels; Stats and Medals scale to 6 subpages.
+4. Relaunch the game. The game will automatically detect the Level Pack `.so`: Level select expands to all 5 levels, and Stats and Medals scale to 6 subpages.
 
 **Notes:**
 - The Level Pack's `.so` exports the same 11 JNI functions as the base game under a different
-  symbol prefix (`impossiblegamelevelpack` instead of `impossiblegame`) — this port already
-  resolves the right one, no code changes needed on your end.
+  symbol prefix (`impossiblegamelevelpack` instead of `impossiblegame`) — this port resolves
+  both automatically at runtime with zero user intervention.
+- If you run with the base game's `.so`, the menu automatically stays in 2-level mode and 3 subpages, avoiding missing texture errors.
 - `statspage4/5/6.png` only ship at the pack's original mdpi resolution (no landscape crop) —
   this port already accounts for that, it's a minor, cosmetic sharpness difference only.
 - Your existing `save.dat` will be reset the first time you launch with the new `.so` (the save

@@ -19,6 +19,8 @@ typedef enum {
     STATE_GAMEPLAY = 7
 } GameState;
 
+extern int g_is_level_pack;
+
 int menu_init(void);
 void menu_shutdown(void);
 

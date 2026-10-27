@@ -1,54 +1,35 @@
-# The Impossible Game — PS Vita Port v1.1.0
+# The Impossible Game — PS Vita Port v1.2.0
 
-Adds full support for the official **Level Pack** add-on (3 extra levels), on top of the
-playable base port from v1.0.0. Runs `libimpossible.so` directly on ARM via a *soloader* +
-*FalsoJNI*, with OpenGL ES 1.1 (fixed-function pipeline) rendering through vitaGL.
+Adds automatic detection and full backward compatibility for **both the Base Game and the Level Pack**, fixing the launch crash when using `05133-the-impossible-1.5.2.apk`.
 
-## ✨ What's New
+## ✨ What's New in v1.2.0
 
-- **5 levels playable**: the 2 base levels (Fire Aura, Original Xbox Level) plus the 3 levels
-  from the official Level Pack (Chaoz Fantasy, Heaven, Phazd) — confirmed working on real
-  hardware with audio, input, and save data.
-- **Level Pack `.so` support**: the loader now resolves the Level Pack's
-  `libimpossible.so` (same 11 JNI exports, `impossiblegamelevelpack` symbol prefix instead of
-  `impossiblegame`) — no source changes needed to swap between the base and Level Pack `.so`.
-- **Save data expanded**: 6 → 12 medals, 2 → 5 levels of practice/no-flag progress tracking.
-- **Menu scaled to 5 levels**: level select grew from 2 to 5 buttons (3+2 grid with a back
-  button), Stats and Medals screens grew from 3 to 6 subpages each.
-- **Per-level music**: added `BGM_SOUNDTRACK2/3/4` for Chaoz Fantasy/Heaven/Phazd; the 2 base
-  levels keep using the original `soundtrack.ogg`.
-
-## ⚠️ Known Issues / Pending Work
-
-- None currently open. The Level Pack's `statspage4/5/6.png` assets only ship at their original
-  mdpi resolution (no landscape crop like the base game's stats pages) — a minor, cosmetic
-  sharpness difference only, not a functional issue.
-- Updating an existing install resets `save.dat` (the save layout grew to fit 5 levels / 12
-  medals) — expected, not a bug.
+- **Universal APK Compatibility (Fix for "cant resolve JNI symbols")**:
+  - The loader now resolves JNI exports dynamically with automatic fallback between the Level Pack prefix (`Java_com_flukedude_impossiblegamelevelpack_*`) and the Base Game prefix (`Java_com_flukedude_impossiblegame_*`).
+  - You can now install either `05133-the-impossible-1.5.2.apk` (2 levels) or `05133-Impossible-Level-Pack.apk` (5 levels) with **zero code modifications**.
+- **Dynamic UI Adaptation**:
+  - **Base Game Mode (2 levels)**: The level select menu automatically shows the original 2-button layout (Fire Aura & Xbox Level) and limits the Stats and Medals pages to 3 subpages, completely avoiding texture missing errors.
+  - **Level Pack Mode (5 levels)**: Scales up to all 5 levels and 6 subpages for medals and stats.
+- **Save Sync Guarding**:
+  - Safely bounds save synchronization to 6 medals / 2 levels when running the base game, and 12 medals / 5 levels with the Level Pack.
+- **Toolchain Updates**:
+  - Fixed C23 / GCC 15 toolchain issues (`ATOMIC_VAR_INIT` and FalsoJNI return types).
+  - Added `-Wl,--no-warn-mismatch` in build configuration.
 
 ## 📋 Requirements
 
 - PS Vita / PS TV running Custom Firmware (HENkaku or Enso), firmware 3.60/3.65+.
 - [`kubridge`](https://github.com/TheOfficialFloW/kubridge/releases) installed as a kernel plugin.
 - [`libshacccg.suprx`](https://github.com/Rinnegatamante/ShaRKBR33D/releases/latest) installed in `ur0:data/`.
-- A legally obtained copy of **The Impossible Game** for Android
-  (`05133-the-impossible-1.5.2.apk`, package `com.flukedude.impossiblegame`).
-- *(Optional, for the 3 extra levels)* A legally obtained copy of the **Level Pack** add-on
-  (`05133-Impossible-Level-Pack.apk`, package `com.flukedude.impossiblegamelevelpack`).
+- A legally obtained copy of:
+  - **The Impossible Game** for Android (`05133-the-impossible-1.5.2.apk`), OR
+  - **The Impossible Game: Level Pack** (`05133-Impossible-Level-Pack.apk`).
 
 ## 📦 Installation
 
 1. Install `theimpossiblegame.vpk` with VitaShell.
-2. Copy the contents of `ux0_data/theimpossiblegame/` to `ux0:data/theimpossiblegame/` on
-   the console (see `README.md` for the full file layout).
-3. **For the 3 extra levels**: unzip `05133-Impossible-Level-Pack.apk` on your PC and merge its
-   `.so`, `soundtrack2/3/4.ogg`, and level-select/stats/medals PNGs into
-   `ux0:data/theimpossiblegame/` — see the
-   [Level Pack Installation](README.md#-level-pack-installation-5-levels-optional) section in
-   `README.md` for the exact file list and paths. Without this step, the game still runs fine
-   with just the 2 base levels.
-
----
-
-See `README.md` for the full port description, and `port_progress.md` for the bug-by-bug
-diagnosis log (every fix confirmed on real hardware, no guessing).
+2. Unzip your legally obtained `.apk` using 7-Zip, WinRAR, or any standard unzip tool (no command-line tools needed):
+   - Copy `lib/armeabi-v7a/libimpossible.so` to `ux0:data/theimpossiblegame/libimpossible.so`.
+   - Copy the `assets/` folder to `ux0:data/theimpossiblegame/assets/`.
+   - Copy the `res/` folder to `ux0:data/theimpossiblegame/res/`.
+3. *(Optional)* If you also have the **Level Pack** (`05133-Impossible-Level-Pack.apk`), unzip it and merge its contents (overwriting `libimpossible.so` and merging `res/` and `assets/`). The game will automatically detect the Level Pack and unlock all 5 levels!

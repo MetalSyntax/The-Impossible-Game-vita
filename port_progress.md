@@ -260,3 +260,31 @@
   Heaven, Phazd) son jugables con el `.so` del Level Pack, pese a que el pack oficial (su propio
   Java) nunca invoca `initGame(0)`/`initGame(1)` directamente — llamarlas desde nuestro loop en C
   funciona igual. No hizo falta el plan B (cargar ambos `.so`).
+
+## Fase 14: Detección dinámica y compatibilidad universal Base + Level Pack (v1.2.0 — 2026-10-27)
+
+- **Bug reportado por usuarios:** Al instalar únicamente el juego base (`05133-the-impossible-1.5.2.apk`),
+  el juego crasheaba al arrancar con `"Failed to resolve JNI symbols from libimpossible.so"`.
+- **Causa raíz:** En la versión v1.1.0 se modificó `main.c` con el prefijo estático
+  `Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_*`, por lo que el `libimpossible.so`
+  original del juego base (cuyo prefijo es `Java_com_flukedude_impossiblegame_ImpossibleGame_*`)
+  fallaba la resolución de símbolos. Además, el menú y las pantallas de estadísticas/medallas
+  asumían fijos 5 niveles y 6 subpáginas, intentando cargar texturas inexistentes en el APK base.
+- **Solución implementada:**
+  - `source/main.c`: Implementada función `resolve_game_symbol()` con fallback dinámico. Detecta
+    automáticamente si el `.so` instalado pertenece al Level Pack (`g_is_level_pack = 1`) o al juego
+    base (`g_is_level_pack = 0`).
+  - `source/main.c`: Sincronización de guardado condicionada según la variante activa (6 medallas y
+    2 niveles de progreso para el juego base; 12 medallas y 5 niveles de progreso para el Level Pack).
+  - `source/menu.c`: Adaptación de la interfaz según `g_is_level_pack`:
+    - Juego Base (2 niveles): Selector de 2 botones originales + botón Menú con navegación D-Pad y
+      touch adaptados; pantallas de Estadísticas y Medallas limitadas a 3 subpáginas, evitando
+      intentos de carga de texturas faltantes (`statspage4..6`, `medalspage4..6`, etc.).
+    - Level Pack (5 niveles): Mantiene la cuadrícula completa de 5 niveles y 6 subpáginas.
+  - Correcciones de compilación para VitaSDK / GCC 15:
+    - `source/utils/logger.c`: Eliminada macro obsoleta `ATOMIC_VAR_INIT` para compatibilidad con C23.
+    - `lib/falso_jni/`: Corregidos tipos de retorno en `GetPrimitiveArrayCritical` y `jda_sizeof`.
+    - `CMakeLists.txt`: Añadido flag `-Wl,--no-warn-mismatch` para permitir linkeo en toolchains con
+      librerías precompiladas hardfp.
+- **Resultado:** El mismo ejecutable y VPK corre de forma transparente y nativa tanto con el APK
+  base (`05133-the-impossible-1.5.2.apk`) como con la expansión (`05133-Impossible-Level-Pack.apk`).

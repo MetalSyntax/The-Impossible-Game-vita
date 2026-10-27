@@ -14,7 +14,7 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "The Impossible Game")
 set(VITA_TITLEID "PSVTIG001")
 set(VITA_VPKNAME "theimpossiblegame")
-set(VITA_VERSION "01.00")
+set(VITA_VERSION "01.20")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
 # Optional: used for "send" and "dump" targets
@@ -64,6 +64,7 @@ add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -O3 -g -ffast-math -mfloat-abi=softfp -Wno-deprecated")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=gnu++20 -Wno-write-strings -Wno-psabi")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp -Wl,--no-warn-mismatch")
 
 # vitaGL vendorizada como submodule (lib/vitagl) compilada desde fuente en
 # vez de depender del libvitaGL.a global de ~/vitasdk (que resultó estar rota

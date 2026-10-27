@@ -30,8 +30,12 @@
 
 #define COLOR_END    "\033[0m"
 
+#ifndef ATOMIC_VAR_INIT
+#define ATOMIC_VAR_INIT(value) (value)
+#endif
+
 static SceKernelLwMutexWork _log_mutex;
-static atomic_bool _log_mutex_ready = ATOMIC_VAR_INIT(false);
+static atomic_bool _log_mutex_ready = false;
 
 // Buffer A is used to adjust the format string.
 static char buffer_a[2048];
@@ -44,7 +48,7 @@ static char msg_body[1792];
 // Archivo de log incremental (.log, 001-999).
 static SceUID _log_fd = -1;
 static char _log_path[256] = "";
-static atomic_bool _log_init_tried = ATOMIC_VAR_INIT(false);
+static atomic_bool _log_init_tried = false;
 
 static void _log_file_write(const char *s) {
     if (_log_fd < 0 || !s || !*s)

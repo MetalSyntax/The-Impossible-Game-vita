@@ -12,6 +12,7 @@
 #include <psp2/ctrl.h>
 #include <psp2/touch.h>
 
+#include <stdio.h>
 #include <falso_jni/FalsoJNI.h>
 #include <so_util/so_util.h>
 
@@ -47,6 +48,26 @@ static void (*ImpossibleGame_setNumbAttempts)(void *env, void *obj, jint attempt
 static void (*ImpossibleGame_setNumbJumps)(void *env, void *obj, jint jumps) = NULL;
 static void (*ImpossibleGame_setProgress)(void *env, void *obj, jint level, jboolean practice, jint progress) = NULL;
 
+int g_is_level_pack = 0;
+
+static void *resolve_game_symbol(const char *name) {
+    char sym[256];
+    if (g_is_level_pack) {
+        snprintf(sym, sizeof(sym), "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_%s", name);
+        return (void *)so_symbol(&so_mod, sym);
+    }
+    // Probar primero con el prefijo del Level Pack (05133-Impossible-Level-Pack.apk)
+    snprintf(sym, sizeof(sym), "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_%s", name);
+    void *ptr = (void *)so_symbol(&so_mod, sym);
+    if (ptr) {
+        g_is_level_pack = 1;
+        return ptr;
+    }
+    // Fallback: Probar con el juego base (05133-the-impossible-1.5.2.apk)
+    snprintf(sym, sizeof(sym), "Java_com_flukedude_impossiblegame_ImpossibleGame_%s", name);
+    return (void *)so_symbol(&so_mod, sym);
+}
+
 int main() {
     // Archivo de log .log incremental (001-999). Se crea antes del primer log.
     logger_init();
@@ -61,26 +82,31 @@ int main() {
         JNI_OnLoad(&jvm);
     }
 
-    // Resolve native functions (libimpossible.so del Level Pack: 5 niveles,
-    // prefijo JNI "impossiblegamelevelpack" en vez de "impossiblegame")
-    ImpossibleGame_drawFrame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_drawFrame");
-    ImpossibleGame_getMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getMedalUnlocked");
-    ImpossibleGame_getNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getNumbAttempts");
-    ImpossibleGame_getNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getNumbJumps");
-    ImpossibleGame_getProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_getProgress");
-    ImpossibleGame_initGame = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_initGame");
-    ImpossibleGame_initLibrary = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_initLibrary");
-    ImpossibleGame_setMedalUnlocked = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setMedalUnlocked");
-    ImpossibleGame_setNumbAttempts = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setNumbAttempts");
-    ImpossibleGame_setNumbJumps = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setNumbJumps");
-    ImpossibleGame_setProgress = (void *)so_symbol(&so_mod, "Java_com_flukedude_impossiblegamelevelpack_ImpossibleGame_setProgress");
+    // Resolve native functions: soporte dinámico tanto para el Level Pack (5 niveles,
+    // com.flukedude.impossiblegamelevelpack) como para el juego base (2 niveles,
+    // com.flukedude.impossiblegame).
+    ImpossibleGame_drawFrame = (void *)resolve_game_symbol("drawFrame");
+    ImpossibleGame_getMedalUnlocked = (void *)resolve_game_symbol("getMedalUnlocked");
+    ImpossibleGame_getNumbAttempts = (void *)resolve_game_symbol("getNumbAttempts");
+    ImpossibleGame_getNumbJumps = (void *)resolve_game_symbol("getNumbJumps");
+    ImpossibleGame_getProgress = (void *)resolve_game_symbol("getProgress");
+    ImpossibleGame_initGame = (void *)resolve_game_symbol("initGame");
+    ImpossibleGame_initLibrary = (void *)resolve_game_symbol("initLibrary");
+    ImpossibleGame_setMedalUnlocked = (void *)resolve_game_symbol("setMedalUnlocked");
+    ImpossibleGame_setNumbAttempts = (void *)resolve_game_symbol("setNumbAttempts");
+    ImpossibleGame_setNumbJumps = (void *)resolve_game_symbol("setNumbJumps");
+    ImpossibleGame_setProgress = (void *)resolve_game_symbol("setProgress");
 
     if (!ImpossibleGame_drawFrame || !ImpossibleGame_initGame || !ImpossibleGame_initLibrary) {
         l_fatal("Failed to resolve essential JNI symbols!");
         fatal_error("Failed to resolve JNI symbols from libimpossible.so");
     }
 
-    l_success("JNI symbols resolved successfully.");
+    if (g_is_level_pack) {
+        l_success("JNI symbols resolved: Level Pack detected (5 levels).");
+    } else {
+        l_success("JNI symbols resolved: Base Game detected (2 levels).");
+    }
 
     gl_init();
     l_success("GL initialized.");
@@ -116,10 +142,12 @@ int main() {
     // Sync saved data to native library
     ImpossibleGame_setNumbJumps(&jni, NULL, g_save_data.numbJumps);
     ImpossibleGame_setNumbAttempts(&jni, NULL, g_save_data.numbAttempts);
-    for (int i = 0; i < 12; i++) {
+    int num_medals = g_is_level_pack ? 12 : 6;
+    int num_levels = g_is_level_pack ? 5 : 2;
+    for (int i = 0; i < num_medals; i++) {
         ImpossibleGame_setMedalUnlocked(&jni, NULL, i, g_save_data.medals[i]);
     }
-    for (int l = 0; l < 5; l++) {
+    for (int l = 0; l < num_levels; l++) {
         ImpossibleGame_setProgress(&jni, NULL, l, 1, g_save_data.progress_practice[l]);
         ImpossibleGame_setProgress(&jni, NULL, l, 0, g_save_data.progress_noflag[l]);
     }
@@ -267,10 +295,10 @@ int main() {
             // Sync stats
             g_save_data.numbJumps = ImpossibleGame_getNumbJumps(&jni, NULL);
             g_save_data.numbAttempts = ImpossibleGame_getNumbAttempts(&jni, NULL);
-            for (int i = 0; i < 12; i++) {
+            for (int i = 0; i < num_medals; i++) {
                 g_save_data.medals[i] = ImpossibleGame_getMedalUnlocked(&jni, NULL, i);
             }
-            for (int l = 0; l < 5; l++) {
+            for (int l = 0; l < num_levels; l++) {
                 g_save_data.progress_practice[l] = ImpossibleGame_getProgress(&jni, NULL, l, 1);
                 g_save_data.progress_noflag[l] = ImpossibleGame_getProgress(&jni, NULL, l, 0);
             }
