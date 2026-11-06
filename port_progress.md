@@ -326,3 +326,14 @@
   `theimpossiblegame.vpk` 953,352 bytes; TRP presente en el VPK con hash de header OK, `APP_VER 01.30`.
   La VitaSDK local de macOS es GCC 10 softfp y no sirve para este port.
 - **Pendiente:** confirmar en consola (pantalla de instalación de trofeos + notificación al ganar una medalla).
+
+## Fase 17: Trofeos fantasma al arrancar (v1.3.1 — 2026-11-06)
+
+- **Bug (consola, log_026):** al abrir el juego se desbloquean 3 trofeos (8, 9, 10) sin jugar.
+- **Causa:** `save.dat` traía `medals[7..9] = 38, 20, 15` (basura de builds anteriores). El desbloqueo
+  retroactivo de `main.c` trata cualquier != 0 como medalla ganada. `libimpossible.so` (Level Pack)
+  sólo escribe `1` en `medals[i]` (`movs r0,#1; str r0,[r2,#0x14]` en drawFrame @0x3a12), así que
+  otro valor = corrupción.
+- **Fix:** `source/save.c` resetea a 0 cualquier medalla que no sea 0/1 al cargar. `VITA_VERSION 01.31`.
+- **Pendiente:** confirmar en consola que el log muestra `Save medal[7]=38 corrupt` y que no se encola ningún trofeo.
+

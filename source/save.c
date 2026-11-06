@@ -18,6 +18,14 @@ void save_init(void) {
         if (read == sizeof(GameSaveData)) {
             l_info("Save data loaded successfully: jumps=%d, attempts=%d",
                    g_save_data.numbJumps, g_save_data.numbAttempts);
+            // libimpossible.so only ever stores 1 in a medal slot; anything else is
+            // corruption from older builds and would fire retroactive trophies.
+            for (int i = 0; i < 12; i++) {
+                if (g_save_data.medals[i] != 0 && g_save_data.medals[i] != 1) {
+                    l_warn("Save medal[%d]=%d corrupt, reset to 0", i, g_save_data.medals[i]);
+                    g_save_data.medals[i] = 0;
+                }
+            }
             return;
         }
     }

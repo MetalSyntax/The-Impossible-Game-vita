@@ -14,7 +14,7 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "The Impossible Game")
 set(VITA_TITLEID "PSVTIG001")
 set(VITA_VPKNAME "theimpossiblegame")
-set(VITA_VERSION "01.30")
+set(VITA_VERSION "01.31")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
 # Optional: used for "send" and "dump" targets

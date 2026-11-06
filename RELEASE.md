@@ -1,4 +1,15 @@
-# The Impossible Game — PS Vita Port v1.3.0
+# The Impossible Game — PS Vita Port v1.3.1
+
+Hotfix for v1.3.0: some saves unlocked trophies the player never earned on the first launch.
+
+## 🐛 Fixed in v1.3.1
+
+- **Phantom trophies on first launch**: saves written by older builds could hold garbage values (e.g. `38`, `20`, `15`) in medal slots. The retroactive unlock treated any non-zero value as earned, so it unlocked e.g. *SIN BANDERAS 3*, *PRACTICA 4* and *SIN BANDERAS 4* right after boot. The game only ever stores `1` in a medal slot, so any other value is now reset to `0` when the save loads (and logged as `Save medal[i]=N corrupt`).
+- Trophies that v1.3.0 already unlocked by mistake stay unlocked. The Vita can't re-lock a trophy; you can only delete the game's trophy data.
+
+---
+
+# v1.3.0
 
 Adds **native PS Vita trophies**: every in-game medal now also unlocks a system trophy, with a Platinum for collecting them all.
 
