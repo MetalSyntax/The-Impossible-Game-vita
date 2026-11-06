@@ -14,7 +14,7 @@ include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "The Impossible Game")
 set(VITA_TITLEID "PSVTIG001")
 set(VITA_VPKNAME "theimpossiblegame")
-set(VITA_VERSION "01.20")
+set(VITA_VERSION "01.30")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 
 # Optional: used for "send" and "dump" targets
@@ -62,19 +62,18 @@ endif()
 # makes sincos, sincosf, etc. visible
 add_definitions(-D_GNU_SOURCE -D__POSIX_VISIBLE=999999)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -O3 -g -ffast-math -mfloat-abi=softfp -Wno-deprecated")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -O3 -g -ffast-math -mfloat-abi=hard -Wno-deprecated")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=gnu++20 -Wno-write-strings -Wno-psabi")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=softfp -Wl,--no-warn-mismatch")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mfloat-abi=hard")
 
 # vitaGL vendorizada como submodule (lib/vitagl) compilada desde fuente en
 # vez de depender del libvitaGL.a global de ~/vitasdk (que resultó estar rota
 # para este port -- ver port_progress.md, causa raíz del fondo negro).
 # LOG_ERRORS=1 vuelca errores internos de GXM (via vgl_log_bridge en
 # source/utils/glutil.c, deduplicado) a nuestro logger de archivo -- útil
-# para futuro triage. SOFTFP_ABI=1 porque este proyecto ya compila con
-# -mfloat-abi=softfp arriba. NO_SPLASHSCREEN=1 quita el logo 3D de vitaGL al
-# arrancar.
-set(VITAGL_MAKE_FLAGS "SOFTFP_ABI=1 LOG_ERRORS=1 NO_SPLASHSCREEN=1")
+# para futuro triage. Compilada con hardfp para coincidir con VitaSDK GCC 15.
+# NO_SPLASHSCREEN=1 quita el logo 3D de vitaGL al arrancar.
+set(VITAGL_MAKE_FLAGS "LOG_ERRORS=1 NO_SPLASHSCREEN=1")
 
 add_executable(${CMAKE_PROJECT_NAME}
                source/main.c
@@ -94,6 +93,7 @@ add_executable(${CMAKE_PROJECT_NAME}
                source/texture.c
                source/save.c
                source/menu.c
+               source/trophies.c
                source/utils/dialog.c
                source/utils/glutil.c
                source/utils/init.c
@@ -180,6 +180,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
                       ScePower_stub
                       SceTouch_stub
                       SceVshBridge_stub
+                      SceSysmodule_stub
+                      SceNpTrophy_stub
                       )
 
 vita_create_self(eboot.bin ${CMAKE_PROJECT_NAME} UNSAFE NOASLR)
@@ -193,6 +195,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/bg0.png sce_sys/livearea/contents/bg0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/template.xml sce_sys/livearea/contents/template.xml
+                ${CMAKE_SOURCE_DIR}/extras/trophy/TIGV00001_00/TROPHY.TRP sce_sys/trophy/TIGV00001_00/TROPHY.TRP
                 )
 
 add_custom_target(send

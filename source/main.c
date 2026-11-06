@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "save.h"
 #include "menu.h"
+#include "trophies.h"
 
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/ctrl.h>
@@ -40,7 +41,7 @@ static jint (*ImpossibleGame_getProgress)(void *env, void *obj, jint level, jboo
 
 static void (*ImpossibleGame_initGame)(
     void *env, void *obj,
-    jint level, jboolean use_vertex_arrays, jboolean unk, jfloat fps, jint tex1, jint tex2) = NULL;
+    jint level, jboolean use_vertex_arrays, jboolean unk, uint32_t fps_bits, jint tex1, jint tex2) = NULL;
 
 static void (*ImpossibleGame_initLibrary)(void *env, void *obj, jint width, jint height) = NULL;
 static void (*ImpossibleGame_setMedalUnlocked)(void *env, void *obj, jint medal, jboolean unlocked) = NULL;
@@ -111,6 +112,9 @@ int main() {
     gl_init();
     l_success("GL initialized.");
 
+    // Needs a running display (setup dialog on first launch), so after gl_init().
+    int trophies_ok = trophies_init() == 0;
+
     // Enable touch and controls
     sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
@@ -146,6 +150,9 @@ int main() {
     int num_levels = g_is_level_pack ? 5 : 2;
     for (int i = 0; i < num_medals; i++) {
         ImpossibleGame_setMedalUnlocked(&jni, NULL, i, g_save_data.medals[i]);
+        // Retroactive: medals earned before trophies existed (or on another install).
+        if (trophies_ok && g_save_data.medals[i] && !trophies_is_unlocked(i + 1))
+            trophies_unlock(i + 1);
     }
     for (int l = 0; l < num_levels; l++) {
         ImpossibleGame_setProgress(&jni, NULL, l, 1, g_save_data.progress_practice[l]);
@@ -181,13 +188,16 @@ int main() {
                 }
                 is_practice = 0;
 
+                float fps = 60.0f;
+                uint32_t fps_bits = *(uint32_t *)&fps;
+
                 // Initialize game session
                 ImpossibleGame_initGame(
                     &jni, NULL,
                     current_level,
-                    1,     // use_vertex_arrays = true
-                    0,     // unk
-                    60.0f, // fps
+                    1,        // use_vertex_arrays = true
+                    0,        // unk
+                    fps_bits, // palabra de 32-bit para alinear los slots del stack softfp
                     tex_normal.id,
                     tex_4444.id
                 );
@@ -296,7 +306,9 @@ int main() {
             g_save_data.numbJumps = ImpossibleGame_getNumbJumps(&jni, NULL);
             g_save_data.numbAttempts = ImpossibleGame_getNumbAttempts(&jni, NULL);
             for (int i = 0; i < num_medals; i++) {
-                g_save_data.medals[i] = ImpossibleGame_getMedalUnlocked(&jni, NULL, i);
+                int medal = ImpossibleGame_getMedalUnlocked(&jni, NULL, i);
+                if (medal && !g_save_data.medals[i]) trophies_unlock(i + 1);
+                g_save_data.medals[i] = medal;
             }
             for (int l = 0; l < num_levels; l++) {
                 g_save_data.progress_practice[l] = ImpossibleGame_getProgress(&jni, NULL, l, 1);

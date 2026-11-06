@@ -1,0 +1,86 @@
+{
+  "comm_id": "TIGV00001",
+  "title": "The Impossible Game",
+  "detail": "The Impossible Game PlayStation Vita Port",
+  "icon": "extras/livearea/icon0.png",
+  "banner": "The_Impossible_Game_logo.jpg",
+  "trophies": [
+    {
+      "ttype": "P",
+      "name": "LO IMPOSIBLE",
+      "detail": "Consigue todas las medallas del juego."
+    },
+    {
+      "ttype": "S",
+      "name": "PERSEVERANCIA",
+      "detail": "500 intentos sin abandonar.",
+      "art": "extras/trophy/icons/TROP001.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "SALTARIN",
+      "detail": "999 saltos en total.",
+      "art": "extras/trophy/icons/TROP002.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "PRACTICA 1",
+      "detail": "Termina el Nivel 1 en modo practica.",
+      "art": "extras/trophy/icons/TROP003.PNG"
+    },
+    {
+      "ttype": "G",
+      "name": "SIN BANDERAS 1",
+      "detail": "Termina el Nivel 1 sin banderas.",
+      "art": "extras/trophy/icons/TROP004.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "PRACTICA 2",
+      "detail": "Termina el Nivel Xbox en modo practica.",
+      "art": "extras/trophy/icons/TROP005.PNG"
+    },
+    {
+      "ttype": "G",
+      "name": "SIN BANDERAS 2",
+      "detail": "Termina el Nivel Xbox sin banderas.",
+      "art": "extras/trophy/icons/TROP006.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "PRACTICA 3",
+      "detail": "Termina el Nivel 2 en modo practica.",
+      "art": "extras/trophy/icons/TROP007.PNG"
+    },
+    {
+      "ttype": "G",
+      "name": "SIN BANDERAS 3",
+      "detail": "Termina el Nivel 2 sin banderas.",
+      "art": "extras/trophy/icons/TROP008.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "PRACTICA 4",
+      "detail": "Termina el Nivel 3 en modo practica.",
+      "art": "extras/trophy/icons/TROP009.PNG"
+    },
+    {
+      "ttype": "G",
+      "name": "SIN BANDERAS 4",
+      "detail": "Termina el Nivel 3 sin banderas.",
+      "art": "extras/trophy/icons/TROP010.PNG"
+    },
+    {
+      "ttype": "B",
+      "name": "PRACTICA 5",
+      "detail": "Termina el Nivel 4 en modo practica.",
+      "art": "extras/trophy/icons/TROP011.PNG"
+    },
+    {
+      "ttype": "G",
+      "name": "SIN BANDERAS 5",
+      "detail": "Termina el Nivel 4 sin banderas.",
+      "art": "extras/trophy/icons/TROP012.PNG"
+    }
+  ]
+}

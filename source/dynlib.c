@@ -132,6 +132,55 @@ void *dlsym_soloader(void * handle, const char * symbol) {
     return NULL;
 }
 
+// Wrappers ABI softfp -> hardfp para llamadas provenientes de libimpossible.so.
+// En softfp, los argumentos y retornos float de 32 bits van en r0-r3 (y doubles en r0-r1 / r2-r3).
+// En hardfp (VitaSDK GCC 15), van en registros VFP (s0-s15 / d0-d7).
+// Al declarar estos wrappers con tipos enteros (uint32_t / uint64_t), ARM AAPCS garantiza
+// que reciben y retornan en registros generales r0-r3 sin mismatch.
+static void glClearColor_soloader(uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
+    glClearColor(*(float *)&r, *(float *)&g, *(float *)&b, *(float *)&a);
+}
+
+static void glColor4f_soloader(uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
+    glColor4f(*(float *)&r, *(float *)&g, *(float *)&b, *(float *)&a);
+}
+
+static void glTexEnvf_soloader(GLenum target, GLenum pname, uint32_t param) {
+    glTexEnvf(target, pname, *(float *)&param);
+}
+
+static void glPointSize_soloader(uint32_t size) {
+    glPointSize(*(float *)&size);
+}
+
+static void glTranslatef_soloader(uint32_t x, uint32_t y, uint32_t z) {
+    glTranslatef(*(float *)&x, *(float *)&y, *(float *)&z);
+}
+
+static void glRotatef_soloader(uint32_t angle, uint32_t x, uint32_t y, uint32_t z) {
+    glRotatef(*(float *)&angle, *(float *)&x, *(float *)&y, *(float *)&z);
+}
+
+static uint32_t sinf_soloader(uint32_t x) {
+    float res = sinf(*(float *)&x);
+    return *(uint32_t *)&res;
+}
+
+static uint32_t cosf_soloader(uint32_t x) {
+    float res = cosf(*(float *)&x);
+    return *(uint32_t *)&res;
+}
+
+static uint32_t truncf_soloader(uint32_t x) {
+    float res = truncf(*(float *)&x);
+    return *(uint32_t *)&res;
+}
+
+static uint64_t round_soloader(uint64_t x) {
+    double res = round(*(double *)&x);
+    return *(uint64_t *)&res;
+}
+
 so_default_dynlib default_dynlib[] = {
         // Common C/C++ internals
         { "_ZNSt8bad_castD1Ev", (uintptr_t)&_ZNSt8bad_castD1Ev },
@@ -267,7 +316,7 @@ so_default_dynlib default_dynlib[] = {
         { "ceil", (uintptr_t)&ceil },
         { "ceilf", (uintptr_t)&ceilf },
         { "cos", (uintptr_t)&cos },
-        { "cosf", (uintptr_t)&cosf },
+        { "cosf", (uintptr_t)&cosf_soloader },
         { "exp", (uintptr_t)&exp },
         { "exp2", (uintptr_t)&exp2 },
         { "exp2f", (uintptr_t)&exp2f },
@@ -292,14 +341,14 @@ so_default_dynlib default_dynlib[] = {
         { "powf", (uintptr_t)&powf },
         { "rint", (uintptr_t)&rint },
         { "rintf", (uintptr_t)&rintf },
-        { "round", (uintptr_t)&round },
+        { "round", (uintptr_t)&round_soloader },
         { "roundf", (uintptr_t)&roundf },
         { "scalbn", (uintptr_t)&scalbn },
         { "scalbnf", (uintptr_t)&scalbnf },
         { "sin", (uintptr_t)&sin },
         { "sincos", (uintptr_t)&sincos },
         { "sincosf", (uintptr_t)&sincosf },
-        { "sinf", (uintptr_t)&sinf },
+        { "sinf", (uintptr_t)&sinf_soloader },
         { "sinh", (uintptr_t)&sinh },
         { "sinhf", (uintptr_t)&sinhf },
         { "sqrt", (uintptr_t)&sqrt },
@@ -308,7 +357,7 @@ so_default_dynlib default_dynlib[] = {
         { "tanf", (uintptr_t)&tanf },
         { "tanh", (uintptr_t)&tanh },
         { "trunc", (uintptr_t)&trunc },
-        { "truncf", (uintptr_t)&truncf },
+        { "truncf", (uintptr_t)&truncf_soloader },
 
 
         // Sockets
@@ -526,7 +575,7 @@ so_default_dynlib default_dynlib[] = {
         { "glCheckFramebufferStatus", (uintptr_t)&glCheckFramebufferStatus },
         { "glCheckFramebufferStatusOES", (uintptr_t)&glCheckFramebufferStatus },
         { "glClear", (uintptr_t)&glClear },
-        { "glClearColor", (uintptr_t)&glClearColor },
+        { "glClearColor", (uintptr_t)&glClearColor_soloader },
         { "glClearColorx", (uintptr_t)&glClearColorx },
         { "glClearDepthf", (uintptr_t)&glClearDepthf },
         { "glClearDepthx", (uintptr_t)&glClearDepthx },
@@ -534,7 +583,7 @@ so_default_dynlib default_dynlib[] = {
         { "glClientActiveTexture", (uintptr_t)&glClientActiveTexture },
         { "glClipPlanef", (uintptr_t)&glClipPlanef },
         { "glClipPlanex", (uintptr_t)&glClipPlanex },
-        { "glColor4f", (uintptr_t)&glColor4f },
+        { "glColor4f", (uintptr_t)&glColor4f_soloader },
         { "glColor4ub", (uintptr_t)&glColor4ub },
         { "glColor4x", (uintptr_t)&glColor4x },
         { "glColorMask", (uintptr_t)&glColorMask },
@@ -679,7 +728,7 @@ so_default_dynlib default_dynlib[] = {
         { "glPointParameterfv", (uintptr_t)&ret0 },
         { "glPointParameterx", (uintptr_t)&ret0 },
         { "glPointParameterxv", (uintptr_t)&ret0 },
-        { "glPointSize", (uintptr_t)&glPointSize },
+        { "glPointSize", (uintptr_t)&glPointSize_soloader },
         { "glPointSizePointerOES", (uintptr_t)&ret0 },
         { "glPointSizex", (uintptr_t)&glPointSizex },
         { "glPolygonOffset", (uintptr_t)&glPolygonOffset },
@@ -690,7 +739,7 @@ so_default_dynlib default_dynlib[] = {
         { "glReadPixels", (uintptr_t)&glReadPixels },
         { "glRenderbufferStorage", (uintptr_t)&glRenderbufferStorage },
         { "glRenderbufferStorageOES", (uintptr_t)&glRenderbufferStorage },
-        { "glRotatef", (uintptr_t)&glRotatef },
+        { "glRotatef", (uintptr_t)&glRotatef_soloader },
         { "glRotatex", (uintptr_t)&glRotatex },
         { "glSampleCoverage", (uintptr_t)&ret0 },
         { "glSampleCoveragex", (uintptr_t)&ret0 },
@@ -705,7 +754,7 @@ so_default_dynlib default_dynlib[] = {
         { "glStencilOp", (uintptr_t)&glStencilOp },
         { "glStencilOpSeparate", (uintptr_t)&glStencilOpSeparate },
         { "glTexCoordPointer", (uintptr_t)&glTexCoordPointer },
-        { "glTexEnvf", (uintptr_t)&glTexEnvf },
+        { "glTexEnvf", (uintptr_t)&glTexEnvf_soloader },
         { "glTexEnvfv", (uintptr_t)&glTexEnvfv },
         { "glTexEnvi", (uintptr_t)&glTexEnvi },
         { "glTexEnviv", (uintptr_t)&ret0 },
@@ -725,7 +774,7 @@ so_default_dynlib default_dynlib[] = {
         { "glTexParameterx", (uintptr_t)&glTexParameterx },
         { "glTexParameterxv", (uintptr_t)&ret0 },
         { "glTexSubImage2D", (uintptr_t)&glTexSubImage2D },
-        { "glTranslatef", (uintptr_t)&glTranslatef },
+        { "glTranslatef", (uintptr_t)&glTranslatef_soloader },
         { "glTranslatex", (uintptr_t)&glTranslatex },
         { "glUniform1f", (uintptr_t)&glUniform1f },
         { "glUniform1fv", (uintptr_t)&glUniform1fv },

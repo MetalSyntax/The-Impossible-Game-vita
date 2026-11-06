@@ -288,3 +288,41 @@
       librerías precompiladas hardfp.
 - **Resultado:** El mismo ejecutable y VPK corre de forma transparente y nativa tanto con el APK
   base (`05133-the-impossible-1.5.2.apk`) como con la expansión (`05133-Impossible-Level-Pack.apk`).
+
+## Fase 15: Corrección de ABI Float (hardfp vs softfp) y Silencio/Fondos Blancos (v1.2.1 — 2026-10-27)
+
+- **Bug reportado en v1.2.0:** Todos los mundos se ven en blanco (los obstáculos y el fondo son quads blancos planos) y no hay ningún tipo de sonido en el juego.
+- **Causa raíz:**
+  1. En v1.2.0 se introdujo `-Wl,--no-warn-mismatch` en `CMakeLists.txt` forzando el enlace entre el proyecto compilado con `-mfloat-abi=softfp` y la toolchain moderna de VitaSDK (GCC 15.2.0), cuyas librerías de sistema (`libm.a`, `libc.a`, `crt0.o`) están construidas con `-mfloat-abi=hard` (pasando flotantes en registros VFP `s0-s15`).
+  2. **Silencio total en audio:** `stb_vorbis` (en `source/audio.c`) llamaba a funciones de `libm.a` (`sin`, `cos`, `pow`, `floor`) pasando los argumentos en registros generales `r0-r3`. Las funciones matemáticas hardfp leían los registros VFP no inicializados, arrojando NaNs/ceros, silenciando por completo la decodificación de audio OGG.
+  3. **Fondos y obstáculos blancos en niveles:**
+     - En `source/main.c`, la firma de `ImpossibleGame_initGame` tenía `jfloat fps` en el 4º argumento. En modo hardfp, `fps` se ubicaba en el registro VFP `s0`, alterando la distribución de parámetros en el stack. `libimpossible.so` (compilada originalmente en softfp) esperaba `fps` en `[sp, 4]`, `tex1` (`gametextures.png`) en `[sp, 8]`, y `tex2` en `[sp, 12]`. Debido al desplazamiento, `tex1` recibía `tex2` y `tex2` recibía basura/0, dejando las texturas del juego sin enlazar.
+     - Las llamadas de `libimpossible.so` a `glColor4f`, `glClearColor`, `glOrthof`, `glTexEnvf`, etc., pasaban argumentos flotantes en `r0-r3`, los cuales eran leídos incorrectamente por VitaGL hardfp.
+- **Solución implementada:**
+  1. **Migración a hardfp nativo en el ejecutable:** `CMakeLists.txt` unificado a `-mfloat-abi=hard` sin flags de mismatch, eliminando desajustes con `libm.a`, `libc.a`, `libvitashark.a` y VitaGL.
+  2. **Bridge wrappers de ABI en `source/dynlib.c`:**
+     - `libimpossible.so` únicamente importa 10 funciones que utilizan floats: `sinf`, `cosf`, `truncf`, `round`, `glClearColor`, `glColor4f`, `glTexEnvf`, `glPointSize`, `glTranslatef`, `glRotatef`.
+     - Se crearon wrappers intermedios (`*_soloader`) que reciben los floats como `uint32_t` / `uint64_t` (asegurando lectura desde `r0-r3` en la convención ARM AAPCS softfp del SO) y los reenvían como floats nativos hardfp (`s0-s15`) a las implementaciones reales de VitaGL y newlib.
+  3. **Alineación de stack en `ImpossibleGame_initGame` (`source/main.c`):**
+     - Declaración actualizada con `uint32_t fps_bits` para preservar la ranura exacta de 32 bits en el stack requerida por `libimpossible.so`.
+  4. **Activación permanente del logger:** `source/utils/logger.h` ahora preserva `l_info`, `l_warn` y `l_success` para facilitar diagnósticos en consola física.
+- **Resultado:**
+  - Build limpio de `eboot.bin` (723,589 bytes) y `theimpossiblegame.vpk` (864,333 bytes).
+  - Audio OGG funcional con decodificación de punto flotante exacta.
+  - Texturas de los niveles enlazadas adecuadamente sin quads blancos.
+
+## Fase 16: Trofeos nativos (v1.3.0 — 2026-11-06)
+
+- **Mapeo:** el motor ya trae 12 medallas (`getMedalUnlocked(i)`): medalla i -> trofeo i+1, 0 = platino
+  (lo da el SO). Medallas confirmadas de `medalspage1..6l.png`: 500 intentos, 999 saltos, y por cada
+  nivel (1, Xbox, 2, 3, 4) práctica + sin banderas.
+- **Hook:** `source/main.c`, en el sync de stats por frame: transición 0->1 de una medalla ->
+  `trophies_unlock(i+1)`. Al arrancar se re-envían las medallas del save (desbloqueo retroactivo).
+- **Implementación:** plantilla de la skill `psvita-trophies` (`source/trophies.c`, comm_id fijo
+  `TIGV00001`; la primera versión copiada de PoP leía `sceAppMgrAppParamGetString(12)`, que devuelve
+  el TITLE_ID). TRP: `extras/scripts/generate_trophies.py` (íconos + `trophies.json`) y `make_trp.py`.
+  vitaGL ya usaba `vglInitExtended` (deja memoria para el setup dialog).
+- **Build:** Docker `vitasdk/vitasdk` (GCC 15.2 hardfp, Release): `eboot.bin` 776,608 bytes,
+  `theimpossiblegame.vpk` 953,352 bytes; TRP presente en el VPK con hash de header OK, `APP_VER 01.30`.
+  La VitaSDK local de macOS es GCC 10 softfp y no sirve para este port.
+- **Pendiente:** confirmar en consola (pantalla de instalación de trofeos + notificación al ganar una medalla).
